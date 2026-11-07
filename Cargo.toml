@@ -1,0 +1,55 @@
+[package]
+name = "bunkr"
+version = "2.0.0"
+edition = "2021"
+description = "Fast Bunkr album/file downloader (Rust port of BunkrDownloader)"
+license = "GPL-3.0-or-later"
+
+[lib]
+name = "bunkr_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "bunkr"
+path = "src/main.rs"
+
+[[bin]]
+name = "bunkr-gui"
+path = "src/gui/main.rs"
+required-features = ["gui"]
+
+[features]
+default = []
+# Native desktop interface (egui). Build with: cargo build --release --features gui
+gui = ["dep:eframe", "dep:arboard"]
+
+[dependencies]
+eframe = { version = "0.31", optional = true, default-features = false, features = ["glow", "default_fonts", "x11", "wayland"] }
+arboard = { version = "3", optional = true, default-features = false }
+anyhow = "1"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+clap = { version = "4", features = ["derive"] }
+console = "0.15"
+filetime = "0.2"
+fs4 = { version = "0.13", features = ["sync"] }
+futures-util = "0.3"
+indicatif = "0.17"
+rand = "0.9"
+regex = "1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "deflate", "json", "stream", "http2"] }
+scraper = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util", "sync", "time", "signal"] }
+toml = "0.8"
+url = "2"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+rfd = "0.15"

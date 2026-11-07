@@ -1,0 +1,21 @@
+/target
+Downloads/
+Backups/
+session.log
+
+# Artefatos locais
+/bunkr.toml
+/bunkr_gui_settings.ini
+/URLs.txt
+*.temp
+*.bunkrparts
+.bunkr_state.json
+
+# instalador (artefatos de build)
+/installer/bunkr.exe
+/installer/bunkr-gui.exe
+/installer/*.exe
+/installer/header.bmp
+/installer/welcome.bmp
+/installer/app.ico
+/dist/
