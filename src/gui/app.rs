@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use bunkr_core::ui::{LogBuf, Reason, Status, Ui};
 use eframe::egui::{self, vec2, Align, Color32, CursorIcon, FontId, Layout, RichText, Sense, Stroke, TextEdit, ViewportCommand};
 
+use bunkr_core::i18n::{t, Lang};
 use super::manager::{build_backend, Backend, Manager};
 use super::settings::GuiSettings;
 use super::sys;
@@ -48,6 +49,7 @@ struct Snap {
 }
 
 pub struct App {
+    l: Lang,
     s: GuiSettings,
     p: Palette,
     url_text: String,
@@ -107,6 +109,7 @@ impl App {
         let expand = opts.expand;
         let log = opts.log;
         Self {
+            l: Lang::detect(),
             s,
             p,
             url_text: opts.urls.join("\n"),
@@ -146,7 +149,7 @@ impl App {
             match backend {
                 Ok(b) => self.manager = Some(Manager::new(b, &self.s)),
                 Err(e) => {
-                    self.dialog = Some(("Erro".into(), e));
+                    self.dialog = Some((t(self.l, "Erro", "Error").into(), e));
                     return None;
                 }
             }
@@ -171,19 +174,19 @@ impl App {
             }
         }
         if valid.is_empty() {
-            self.dialog = Some(("Nenhum link válido".into(), "Cole ao menos um link válido do Bunkr (ex.: https://bunkr.si/a/XXXXXXXX).".into()));
+            self.dialog = Some((t(self.l, "Nenhum link válido", "No valid links").into(), t(self.l, "Cole ao menos um link válido do Bunkr (ex.: https://bunkr.si/a/XXXXXXXX).", "Paste at least one valid Bunkr link (e.g. https://bunkr.si/a/XXXXXXXX).").into()));
             return;
         }
         let dest = self.s.destination.trim().to_string();
         if dest.is_empty() {
-            self.dialog = Some(("Pasta de destino".into(), "Escolha uma pasta de destino antes de baixar.".into()));
+            self.dialog = Some((t(self.l, "Pasta de destino", "Destination folder").into(), "Escolha uma pasta de destino antes de baixar.".into()));
             return;
         }
         let _ = std::fs::create_dir_all(&dest);
         self.s.save();
         self.url_text = remaining.join("\n").trim().to_string();
         if invalid > 0 {
-            self.append_log(format!("{invalid} link(s) inválido(s) foram ignorados."));
+            self.append_log(format!("{invalid} invalid link(s) were ignored."));
         }
         self.submit_urls(valid);
     }
@@ -198,7 +201,7 @@ impl App {
             if let Some(i) = existing {
                 let st = self.rows[i].ui.view.lock().unwrap().status;
                 if matches!(st, Status::Pending | Status::Running) {
-                    self.append_log(format!("Já está na fila: {}", elide(&url, 60)));
+                    self.append_log(format!("Already queued: {}", elide(&url, 60)));
                     continue;
                 }
             }
@@ -267,11 +270,11 @@ impl App {
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing.y = 0.0;
                 ui.label(RichText::new("Bunkr Downloader").size(19.0).color(p.on_surface).strong());
-                ui.label(RichText::new(format!("GUI nativa em Rust • v{VERSION}")).size(12.0).color(p.muted));
+                ui.label(RichText::new(format!("{} • v{VERSION}", if self.l == Lang::Pt { "GUI nativa em Rust" } else { "Native Rust GUI" })).size(12.0).color(p.muted));
             });
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 let mut dark = self.s.dark_mode;
-                if switch(ui, &p, &mut dark, "Modo escuro") {
+                if switch(ui, &p, &mut dark, t(self.l, "Modo escuro", "Dark mode")) {
                     self.s.dark_mode = dark;
                     self.set_theme(ctx);
                 }
@@ -283,8 +286,8 @@ impl App {
         let p = self.p;
         card(ui, &p, |ui| {
             let mut paste = false;
-            card_header(ui, &p, Icon::Link, "Adicionar Links", Some("Lista de URLs"), |ui| {
-                paste = button(ui, &p, Some(Icon::Clipboard), "Colar Links", BtnKind::Tonal, false, true).clicked();
+            card_header(ui, &p, Icon::Link, t(self.l, "Adicionar Links", "Add Links"), Some(t(self.l, "Lista de URLs", "URL list")), |ui| {
+                paste = button(ui, &p, Some(Icon::Clipboard), t(self.l, "Colar Links", "Paste Links"), BtnKind::Tonal, false, true).clicked();
             });
             if paste {
                 if let Some(t) = sys::clipboard_text().map(|t| t.trim().to_string()).filter(|t| !t.is_empty()) {
@@ -302,7 +305,7 @@ impl App {
                             .desired_width(f32::INFINITY)
                             .desired_rows(5)
                             .text_color(p.on_surface)
-                            .hint_text(RichText::new("Cole um ou vários links, um por linha:\nhttps://bunkr.si/a/PUK068QE\nhttps://bunkr.fi/f/gBrv5f8tAGlGW").color(p.placeholder)),
+                            .hint_text(RichText::new(format!("{}\nhttps://bunkr.si/a/PUK068QE\nhttps://bunkr.fi/f/gBrv5f8tAGlGW", t(self.l, "Cole um ou vários links, um por linha:", "Paste one or more links, one per line:"))).color(p.placeholder)),
                     )
                 })
                 .inner
@@ -316,9 +319,9 @@ impl App {
             let label = if urls.is_empty() {
                 String::new()
             } else if invalid > 0 {
-                format!("{valid} link(s) válido(s) • {invalid} inválido(s) (serão ignorados)")
+                if self.l == Lang::Pt { format!("{valid} link(s) válido(s) • {invalid} inválido(s) (serão ignorados)") } else { format!("{valid} valid link(s) • {invalid} invalid (ignored)") }
             } else {
-                format!("{valid} link(s) válido(s)")
+                if self.l == Lang::Pt { format!("{valid} link(s) válido(s)") } else { format!("{valid} valid link(s)") }
             };
             if !label.is_empty() {
                 hint(ui, &p, &label);
@@ -329,12 +332,12 @@ impl App {
     fn dest_card(&mut self, ui: &mut egui::Ui) {
         let p = self.p;
         card(ui, &p, |ui| {
-            card_header(ui, &p, Icon::Folder, "Pasta de Destino", None, |_| {});
+            card_header(ui, &p, Icon::Folder, t(self.l, "Pasta de Destino", "Destination Folder"), None, |_| {});
             let (mut change, mut open) = (false, false);
             let row_w = ui.available_width();
             ui.allocate_ui_with_layout(vec2(row_w, 34.0), Layout::right_to_left(Align::Center), |ui| {
-                open = button(ui, &p, Some(Icon::FolderOpen), "Abrir Pasta", BtnKind::Tonal, false, true).clicked();
-                change = button(ui, &p, Some(Icon::Folder), "Alterar Pasta", BtnKind::Tonal, false, true).clicked();
+                open = button(ui, &p, Some(Icon::FolderOpen), t(self.l, "Abrir Pasta", "Open Folder"), BtnKind::Tonal, false, true).clicked();
+                change = button(ui, &p, Some(Icon::Folder), t(self.l, "Alterar Pasta", "Change Folder"), BtnKind::Tonal, false, true).clicked();
                 // the path field takes exactly the space that is left
                 let fr = egui::Frame::new().fill(p.tonal_bg).stroke(Stroke::new(1.0, p.input_border)).corner_radius(10.0).inner_margin(egui::Margin::symmetric(12, 8));
                 fr.show(ui, |ui| {
@@ -344,7 +347,7 @@ impl App {
                     });
                 });
             });
-            hint(ui, &p, "Cada álbum é salvo em uma subpasta com o nome do álbum, automaticamente.");
+            hint(ui, &p, t(self.l, "Cada álbum é salvo em uma subpasta com o nome do álbum, automaticamente.", "Each album is saved into a subfolder named after the album, automatically."));
             if change {
                 let start = PathBuf::from(if self.s.destination.is_empty() { "." } else { &self.s.destination });
                 if let Some(d) = sys::choose_folder(&start) {
@@ -365,7 +368,7 @@ impl App {
             let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 22.0), Sense::click());
             let col = if resp.hovered() { p.primary } else { p.on_surface };
             paint_icon(ui.painter(), rect.left_center() + vec2(9.0, 0.0), 14.0, Icon::Gear, p.muted);
-            ui.painter().text(rect.left_center() + vec2(26.0, 0.0), egui::Align2::LEFT_CENTER, "Configurações avançadas", FontId::proportional(13.5), col);
+            ui.painter().text(rect.left_center() + vec2(26.0, 0.0), egui::Align2::LEFT_CENTER, t(self.l, "Configurações avançadas", "Advanced settings"), FontId::proportional(13.5), col);
             chevron(ui, rect.right_center() - vec2(8.0, 0.0), self.settings_open, p.muted);
             if resp.on_hover_cursor(CursorIcon::PointingHand).clicked() {
                 self.settings_open = !self.settings_open;
@@ -375,34 +378,34 @@ impl App {
             }
             ui.add_space(4.0);
             let s = &mut self.s;
-            switch(ui, &p, &mut s.clean_filenames, "Manter nomes originais dos arquivos");
-            switch(ui, &p, &mut s.create_downloads_subfolder, "Criar subpasta \"Downloads\" dentro do destino");
-            switch(ui, &p, &mut s.disable_server_check, "Ignorar verificação de servidor offline");
+            switch(ui, &p, &mut s.clean_filenames, t(self.l, "Manter nomes originais dos arquivos", "Keep original filenames"));
+            switch(ui, &p, &mut s.create_downloads_subfolder, t(self.l, "Criar subpasta \"Downloads\" dentro do destino", "Create a \"Downloads\" subfolder inside the destination"));
+            switch(ui, &p, &mut s.disable_server_check, t(self.l, "Ignorar verificação de servidor offline", "Skip offline server check"));
             ui.add_space(2.0);
             let lbl = |ui: &mut egui::Ui, t: &str| {
                 ui.label(RichText::new(t).size(12.0).color(p.muted));
             };
             egui::Grid::new("adv").num_columns(2).spacing([16.0, 10.0]).show(ui, |ui| {
-                lbl(ui, "Tentativas em caso de falha");
+                lbl(ui, t(self.l, "Tentativas em caso de falha", "Retries on failure"));
                 ui.add_sized([110.0, 28.0], egui::DragValue::new(&mut s.max_retries).range(0..=20));
                 ui.end_row();
-                lbl(ui, "Conexões paralelas por arquivo");
+                lbl(ui, t(self.l, "Conexões paralelas por arquivo", "Parallel connections per file"));
                 ui.add_sized([110.0, 28.0], egui::DragValue::new(&mut s.connections).range(1..=16));
                 ui.end_row();
-                lbl(ui, "Arquivos simultâneos por álbum");
+                lbl(ui, t(self.l, "Arquivos simultâneos por álbum", "Concurrent files per album"));
                 ui.add_sized([110.0, 28.0], egui::DragValue::new(&mut s.workers).range(1..=16));
                 ui.end_row();
-                lbl(ui, "Álbuns simultâneos");
+                lbl(ui, t(self.l, "Álbuns simultâneos", "Concurrent albums"));
                 ui.add_sized([110.0, 28.0], egui::DragValue::new(&mut s.max_concurrent_albums).range(1..=10));
                 ui.end_row();
-                lbl(ui, "Limite de velocidade (KB/s, 0 = sem limite)");
+                lbl(ui, t(self.l, "Limite de velocidade (KB/s, 0 = sem limite)", "Speed limit (KB/s, 0 = unlimited)"));
                 ui.add_sized([110.0, 28.0], egui::DragValue::new(&mut s.rate_limit_kbps).range(0.0..=1_000_000.0).speed(25.0).max_decimals(0));
                 ui.end_row();
-                lbl(ui, "Ignorar arquivos que contenham");
+                lbl(ui, t(self.l, "Ignorar arquivos que contenham", "Skip files containing"));
                 ui.add(TextEdit::singleline(&mut s.ignore_text).desired_width(240.0).margin(egui::Margin::symmetric(10, 6)).hint_text(RichText::new(".zip .rar").color(p.placeholder)));
                 ui.end_row();
-                lbl(ui, "Baixar somente arquivos que contenham");
-                ui.add(TextEdit::singleline(&mut s.include_text).desired_width(240.0).margin(egui::Margin::symmetric(10, 6)).hint_text(RichText::new("opcional").color(p.placeholder)));
+                lbl(ui, t(self.l, "Baixar somente arquivos que contenham", "Only download files containing"));
+                ui.add(TextEdit::singleline(&mut s.include_text).desired_width(240.0).margin(egui::Margin::symmetric(10, 6)).hint_text(RichText::new(t(self.l, "opcional", "optional")).color(p.placeholder)));
                 ui.end_row();
             });
         });
@@ -417,18 +420,18 @@ impl App {
         let busy = processed < total;
 
         card(ui, &p, |ui| {
-            let right = if total == 0 { "Nenhum link adicionado ainda.".to_string() } else { format!("{processed} de {total} processados") };
-            card_header(ui, &p, Icon::Download, "Downloads em Curso", None, |ui| {
+            let right = if total == 0 { t(self.l, "Nenhum link adicionado ainda.", "No links added yet.").to_string() } else { if self.l == Lang::Pt { format!("{processed} de {total} processados") } else { format!("{processed} of {total} processed") } };
+            card_header(ui, &p, Icon::Download, t(self.l, "Downloads em Curso", "Downloads in Progress"), None, |ui| {
                 ui.label(RichText::new(right).size(12.0).color(p.muted));
             });
             let pct = if total > 0 { processed as f32 / total as f32 } else { 0.0 };
             progress(ui, &p, pct, 18.0, Some(&format!("{}%", (pct * 100.0) as u32)));
             let caption = if total == 0 {
-                "Pronto para iniciar".to_string()
+                t(self.l, "Pronto para iniciar", "Ready to start").to_string()
             } else if busy && ok + skipped + failed == 0 {
-                "Baixando…".to_string()
+                t(self.l, "Baixando…", "Downloading…").to_string()
             } else {
-                format!("{ok} baixado(s) • {skipped} ignorado(s) • {failed} com falha")
+                if self.l == Lang::Pt { format!("{ok} baixado(s) • {skipped} ignorado(s) • {failed} com falha") } else { format!("{ok} downloaded • {skipped} skipped • {failed} failed") }
             };
             hint(ui, &p, &caption);
 
@@ -445,12 +448,12 @@ impl App {
         }
         ui.add_space(8.0);
         let (label, color) = match s.status {
-            Status::Pending => ("Aguardando", p.muted),
-            Status::Running => ("Baixando", p.primary),
-            Status::Ok => ("Concluído", p.success),
-            Status::Warn => ("Concluído c/ falhas", p.warning),
-            Status::Error => ("Erro", p.error),
-            Status::Cancelled => ("Cancelado", p.muted),
+            Status::Pending => (t(self.l, "Aguardando", "Waiting"), p.muted),
+            Status::Running => (t(self.l, "Baixando", "Downloading"), p.primary),
+            Status::Ok => (t(self.l, "Concluído", "Done"), p.success),
+            Status::Warn => (t(self.l, "Concluído c/ falhas", "Done with errors"), p.warning),
+            Status::Error => (t(self.l, "Erro", "Error"), p.error),
+            Status::Cancelled => (t(self.l, "Cancelado", "Cancelled"), p.muted),
         };
         ui.spacing_mut().item_spacing.y = 4.0;
         ui.horizontal(|ui| {
@@ -470,9 +473,9 @@ impl App {
         progress(ui, p, frac, 8.0, None);
         let caption = match s.status {
             Status::Running if s.files_total > 0 => {
-                let mut t = format!("{} de {} arquivo(s)", s.files_done, s.files_total);
+                let mut t = if self.l == Lang::Pt { format!("{} de {} arquivo(s)", s.files_done, s.files_total) } else { format!("{} of {} file(s)", s.files_done, s.files_total) };
                 if let Some(a) = s.active_pct {
-                    t += &format!(" • item atual: {:.0}%", a * 100.0);
+                    t += &format!(" • current item: {:.0}%", a * 100.0);
                 }
                 if s.speed > 0.0 {
                     t += &format!(" • {}", fmt_speed(s.speed));
@@ -482,9 +485,9 @@ impl App {
             Status::Ok | Status::Warn | Status::Error | Status::Cancelled => {
                 let (a, b, c) = s.counts;
                 let mut parts = Vec::new();
-                if a > 0 { parts.push(format!("{a} baixado(s)")); }
-                if b > 0 { parts.push(format!("{b} ignorado(s)")); }
-                if c > 0 { parts.push(format!("{c} com falha")); }
+                if a > 0 { parts.push(format!("{a} downloaded")); }
+                if b > 0 { parts.push(format!("{b} skipped")); }
+                if c > 0 { parts.push(format!("{c} failed")); }
                 parts.join(" • ")
             }
             _ => String::new(),
@@ -499,7 +502,7 @@ impl App {
             self.log_cache = (self.log.version(), self.log.snapshot());
         }
         card(ui, &p, |ui| {
-            card_header(ui, &p, Icon::Log, "Log de eventos", None, |_| {});
+            card_header(ui, &p, Icon::Log, t(self.l, "Log de eventos", "Event log"), None, |_| {});
             egui::Frame::new().fill(p.input_bg).stroke(Stroke::new(1.0, p.input_border)).corner_radius(10.0).inner_margin(egui::Margin::symmetric(12, 8)).show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 egui::ScrollArea::vertical().max_height(140.0).min_scrolled_height(140.0).stick_to_bottom(true).show(ui, |ui| {
@@ -565,24 +568,24 @@ impl eframe::App for App {
                 egui::Frame::new().inner_margin(egui::Margin { left: 20, right: 20, top: 4, bottom: 20 }).show(ui, |ui| {
                     ui.set_width(ui.available_width());
                     ui.spacing_mut().item_spacing.y = 8.0;
-                    section_label(ui, &p, "Links do Bunkr");
+                    section_label(ui, &p, t(self.l, "Links do Bunkr", "Bunkr links"));
                     self.url_card(ui);
                     ui.add_space(8.0);
-                    section_label(ui, &p, "Pasta de destino");
+                    section_label(ui, &p, t(self.l, "Pasta de destino", "Destination folder"));
                     self.dest_card(ui);
                     ui.add_space(8.0);
                     self.settings_card(ui);
                     ui.add_space(4.0);
 
                     let w = ui.available_width();
-                    let go = ui.allocate_ui(vec2(w, 46.0), |ui| button(ui, &p, Some(Icon::Download), "BAIXAR AGORA", BtnKind::Cta, false, true).clicked()).inner;
+                    let go = ui.allocate_ui(vec2(w, 46.0), |ui| button(ui, &p, Some(Icon::Download), t(self.l, "BAIXAR AGORA", "DOWNLOAD NOW"), BtnKind::Cta, false, true).clicked()).inner;
                     if go {
                         self.submit_links();
                     }
                     if self.manager.is_some() {
                         ui.vertical_centered(|ui| {
-                            if button(ui, &p, None, "Cancelar Tudo", BtnKind::Danger, false, true)
-                                .on_hover_text("Interrompe todos os downloads pendentes e em andamento agora.")
+                            if button(ui, &p, None, t(self.l, "Cancelar Tudo", "Cancel All"), BtnKind::Danger, false, true)
+                                .on_hover_text(t(self.l, "Interrompe todos os downloads pendentes e em andamento agora.", "Stops every pending and running download now."))
                                 .clicked()
                             {
                                 if let Some(m) = &self.manager {
@@ -592,15 +595,15 @@ impl eframe::App for App {
                         });
                     }
                     ui.add_space(4.0);
-                    section_label(ui, &p, "Progresso geral");
+                    section_label(ui, &p, t(self.l, "Progresso geral", "Overall progress"));
                     self.downloads_card(ui);
                     ui.add_space(6.0);
                     ui.vertical_centered(|ui| {
                         ui.horizontal(|ui| {
                             let w = 2.0 * 150.0 + 8.0;
                             ui.add_space(((ui.available_width() - w) / 2.0).max(0.0));
-                            let a = button(ui, &p, Some(Icon::Gear), "Configurações", BtnKind::Nav, self.settings_open, true).clicked();
-                            let b = button(ui, &p, Some(Icon::Log), "Log de Eventos", BtnKind::Nav, self.log_open, true).clicked();
+                            let a = button(ui, &p, Some(Icon::Gear), t(self.l, "Configurações", "Settings"), BtnKind::Nav, self.settings_open, true).clicked();
+                            let b = button(ui, &p, Some(Icon::Log), t(self.l, "Log de Eventos", "Event Log"), BtnKind::Nav, self.log_open, true).clicked();
                             if a { self.settings_open = !self.settings_open; }
                             if b { self.log_open = !self.log_open; }
                         });

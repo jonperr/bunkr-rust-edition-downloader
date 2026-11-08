@@ -6,6 +6,7 @@
 #![allow(float_literal_f32_fallback)]
 
 mod app;
+mod icon_data;
 mod manager;
 mod settings;
 mod sys;
@@ -14,34 +15,6 @@ mod widgets;
 
 use std::time::Instant;
 
-fn make_icon() -> eframe::egui::IconData {
-    const N: usize = 64;
-    let mut rgba = vec![0u8; N * N * 4];
-    let (r, c0, c1) = (14.0f32, (0x3F, 0xB6, 0xFF), (0x00, 0x72, 0xD6));
-    for y in 0..N {
-        for x in 0..N {
-            let (fx, fy) = (x as f32 + 0.5, y as f32 + 0.5);
-            let (dx, dy) = ((fx - 32.0).abs() - (32.0 - r), (fy - 32.0).abs() - (32.0 - r));
-            let d = dx.max(0.0).hypot(dy.max(0.0)) - r;
-            if d > 0.5 {
-                continue;
-            }
-            let t = (fx + fy) / (2.0 * N as f32);
-            let mix = |a: i32, b: i32| (a as f32 + (b - a) as f32 * t) as u8;
-            let i = (y * N + x) * 4;
-            rgba[i..i + 4].copy_from_slice(&[mix(c0.0, c1.0), mix(c0.1, c1.1), mix(c0.2, c1.2), 255]);
-            // white download arrow
-            let (ax, ay) = (fx - 32.0, fy - 30.0);
-            let shaft = ax.abs() < 3.0 && (-16.0..6.0).contains(&ay);
-            let head = ay > -2.0 && ay < 12.0 && ax.abs() < (12.0 - ay).max(0.0) * 0.9 && ax.abs() >= 0.0 && (ay > 0.0 || ax.abs() < 3.0);
-            let base = ay > 14.0 && ay < 18.0 && ax.abs() < 15.0;
-            if shaft || head || base {
-                rgba[i..i + 4].copy_from_slice(&[255, 255, 255, 255]);
-            }
-        }
-    }
-    eframe::egui::IconData { rgba, width: N as u32, height: N as u32 }
-}
 
 fn main() -> eframe::Result {
     let t0 = Instant::now();
@@ -72,7 +45,7 @@ fn main() -> eframe::Result {
             .with_title("Bunkr Downloader")
             .with_inner_size(size)
             .with_min_inner_size([700.0, 560.0])
-            .with_icon(make_icon()),
+            .with_icon(icon_data::app_icon()),
         renderer: eframe::Renderer::Glow,
         ..Default::default()
     };

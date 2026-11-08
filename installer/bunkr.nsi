@@ -1,125 +1,148 @@
-; Instalador do Bunkr Downloader para Windows (NSIS).
-; Compile com: makensis /DVERSION=2.0.0 bunkr.nsi
-; Requer bunkr.exe e (opcional) bunkr-gui.exe nesta pasta.
-
 Unicode true
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "WordFunc.nsh"
-
+!include "WinMessages.nsh"
 !ifndef VERSION
   !define VERSION "2.0.0"
 !endif
-
+!ifndef TAG
+  !define TAG "en"
+!endif
 !define APPNAME "Bunkr Downloader"
-!define PUBLISHER "Bunkr Downloader"
 !define REGKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\BunkrDownloader"
-!define INSTALLDIR "$LOCALAPPDATA\Bunkr"
-
 Name "${APPNAME} ${VERSION}"
-OutFile "bunkr-setup-${VERSION}-windows-x64.exe"
-InstallDir "${INSTALLDIR}"
-InstallDirRegKey HKCU "Software\BunkrDownloader" "InstallDir"
+OutFile "bunkr-setup-${VERSION}-windows-${TAG}-x64.exe"
+InstallDir "$LOCALAPPDATA\Bunkr"
 RequestExecutionLevel user
-SetCompressor /SOLID lzma
+ShowInstDetails show
 
-; ---------------------------------------------------------------- visual
-!define MUI_ABORTWARNING
 !define MUI_ICON "app.ico"
 !define MUI_UNICON "app.ico"
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_RIGHT
 !define MUI_HEADERIMAGE_BITMAP "header.bmp"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "welcome.bmp"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\bunkr-gui.exe"
+!define MUI_FINISHPAGE_RUN_TEXT $(RUN_NOW)
+!define MUI_FINISHPAGE_RUN_TIMEOUT 8000
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
-
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 
-!insertmacro MUI_LANGUAGE "PortugueseBR"
-!insertmacro MUI_LANGUAGE "English"
+!ifndef PTFIRST
+  !insertmacro MUI_LANGUAGE "English"
+  !insertmacro MUI_LANGUAGE "PortugueseBR"
+!else
+  !insertmacro MUI_LANGUAGE "PortugueseBR"
+  !insertmacro MUI_LANGUAGE "English"
+!endif
 
-; ---------------------------------------------------------------- instalacao
-Section "CLI (bunkr.exe)" SEC_CLI
+LangString RUN_NOW        ${LANG_ENGLISH}      "Start Bunkr Downloader now"
+LangString RUN_NOW        ${LANG_PORTUGUESEBR} "Abrir o Bunkr Downloader agora"
+LangString SEC_CLI        ${LANG_ENGLISH}      "Command-line (bunkr.exe)"
+LangString SEC_CLI        ${LANG_PORTUGUESEBR} "Linha de comando (bunkr.exe)"
+LangString SEC_GUI        ${LANG_ENGLISH}      "Desktop app (bunkr-gui.exe)"
+LangString SEC_GUI        ${LANG_PORTUGUESEBR} "Aplicativo (bunkr-gui.exe)"
+LangString SEC_PATH       ${LANG_ENGLISH}      "Add to PATH"
+LangString SEC_PATH       ${LANG_PORTUGUESEBR} "Adicionar ao PATH"
+LangString DESK           ${LANG_ENGLISH}      "Create a desktop shortcut"
+LangString DESK           ${LANG_PORTUGUESEBR} "Criar atalho na área de trabalho"
+LangString DESK_HDR       ${LANG_ENGLISH}      "Shortcuts"
+LangString DESK_HDR       ${LANG_PORTUGUESEBR} "Atalhos"
+LangString DESK_SUB       ${LANG_ENGLISH}      "Where shortcuts should be placed."
+LangString DESK_SUB       ${LANG_PORTUGUESEBR} "Onde os atalhos serão criados."
+
+Var DESKTOP_ON
+Var DESK_CHECK
+
+# Options page with the desktop-shortcut checkbox.
+Page custom OptionsPage OptionsPageLeave
+Function OptionsPage
+  !insertmacro MUI_HEADER_TEXT $(DESK_HDR) $(DESK_SUB)
+  nsDialogs::Create 1018
+  Pop $0
+  ${If} $0 == error
+    Abort
+  ${EndIf}
+  ${NSD_CreateCheckbox} 0u 0u 100% 14u "$(DESK)"
+  Pop $DESK_CHECK
+  ${If} $DESKTOP_ON == "1"
+    ${NSD_Check} $DESK_CHECK
+  ${EndIf}
+  nsDialogs::Show
+FunctionEnd
+
+Function OptionsPageLeave
+  ${NSD_GetState} $DESK_CHECK $DESKTOP_ON
+FunctionEnd
+
+Function .onInit
+  StrCpy $DESKTOP_ON "1"
+FunctionEnd
+
+Section "$(SEC_CLI)" SEC_CLI
   SectionIn RO
   SetOutPath "$INSTDIR"
   File "bunkr.exe"
   File "bunkr.toml.example"
+  WriteRegStr HKCU "${REGKEY}" "DisplayName" "${APPNAME} ${VERSION}"
+  WriteRegStr HKCU "${REGKEY}" "DisplayVersion" "${VERSION}"
+  WriteRegStr HKCU "${REGKEY}" "Publisher" "jonperr"
+  WriteRegStr HKCU "${REGKEY}" "URLInfoAbout" "https://github.com/jonperr/bunkr-rust-edition-downloader"
+  WriteRegStr HKCU "${REGKEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "${REGKEY}" "DisplayIcon" "$INSTDIR\bunkr-gui.exe"
+  WriteRegDword HKCU "${REGKEY}" "NoModify" 1
+  WriteRegDword HKCU "${REGKEY}" "NoRepair" 1
 SectionEnd
 
-Section "Interface gráfica (bunkr-gui.exe)" SEC_GUI
+Section "$(SEC_GUI)" SEC_GUI
   SetOutPath "$INSTDIR"
   File "bunkr-gui.exe"
-  CreateShortcut "$DESKTOP\Bunkr Downloader.lnk" "$INSTDIR\bunkr-gui.exe" "" "$INSTDIR\bunkr-gui.exe" 0
   CreateDirectory "$SMPROGRAMS\Bunkr Downloader"
   CreateShortcut "$SMPROGRAMS\Bunkr Downloader\Bunkr Downloader.lnk" "$INSTDIR\bunkr-gui.exe" "" "$INSTDIR\bunkr-gui.exe" 0
-SectionEnd
-
-Section "Adicionar ao PATH" SEC_PATH
-  ; Adiciona $INSTDIR ao PATH do usuario (sem duplicar).
-  ReadRegStr $0 HKCU "Environment" "Path"
-  ${If} $0 == ""
-    WriteRegExpandStr HKCU "Environment" "Path" "$INSTDIR"
-  ${Else}
-    ${If} $0 != ""
-      StrCpy $1 "$0"
-      ; remove ocorrencias antigas de $INSTDIR
-      ${WordReplace} "$0" ";$INSTDIR" "" "+" $2
-      ${WordReplace} "$2" "$INSTDIR;" "" "+" $3
-      ${WordReplace} "$3" "$INSTDIR" "" "+" $4
-      WriteRegExpandStr HKCU "Environment" "Path" "$4;$INSTDIR"
-    ${EndIf}
+  ${If} $DESKTOP_ON == "1"
+    CreateShortcut "$DESKTOP\Bunkr Downloader.lnk" "$INSTDIR\bunkr-gui.exe" "" "$INSTDIR\bunkr-gui.exe" 0
   ${EndIf}
-  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 SectionEnd
 
-; ---------------------------------------------------------------- registro
+Section "$(SEC_PATH)" SEC_PATH
+  ReadRegStr $0 HKCU "Environment" "PATH"
+  ${WordFind} "$0" "$INSTDIR" "E+1{" $1
+  ${If} $1 == ""
+    ${If} $0 == ""
+      WriteRegExpandStr HKCU "Environment" "PATH" "$INSTDIR"
+    ${Else}
+      WriteRegExpandStr HKCU "Environment" "PATH" "$0;$INSTDIR"
+    ${EndIf}
+    SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=50
+  ${EndIf}
+SectionEnd
+
 Section -Post
-  WriteRegStr HKCU "Software\BunkrDownloader" "InstallDir" "$INSTDIR"
   WriteUninstaller "$INSTDIR\uninstall.exe"
-
-  WriteRegStr HKCU "${REGKEY}" "DisplayName" "${APPNAME}"
-  WriteRegStr HKCU "${REGKEY}" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKCU "${REGKEY}" "Publisher" "${PUBLISHER}"
-  WriteRegStr HKCU "${REGKEY}" "DisplayIcon" "$INSTDIR\bunkr-gui.exe"
-  WriteRegStr HKCU "${REGKEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
-  WriteRegDWORD HKCU "${REGKEY}" "NoModify" 1
-  WriteRegDWORD HKCU "${REGKEY}" "NoRepair" 1
-
-  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
-  IntFmt $0 "0x%08X" $0
-  WriteRegDWORD HKCU "${REGKEY}" "EstimatedSize" "$0"
 SectionEnd
 
-!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_CLI} "Ferramenta de linha de comando (obrigatória)."
-  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_GUI} "Janela gráfica com progresso, fila e modo escuro."
-  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_PATH} "Permite digitar 'bunkr' em qualquer terminal."
-!insertmacro MUI_FUNCTION_DESCRIPTION_END
-
-; ---------------------------------------------------------------- desinstalar
 Section "Uninstall"
   Delete "$INSTDIR\bunkr.exe"
   Delete "$INSTDIR\bunkr-gui.exe"
   Delete "$INSTDIR\bunkr.toml.example"
   Delete "$INSTDIR\uninstall.exe"
-  RMDir "$INSTDIR"
-
   Delete "$DESKTOP\Bunkr Downloader.lnk"
   Delete "$SMPROGRAMS\Bunkr Downloader\Bunkr Downloader.lnk"
   RMDir "$SMPROGRAMS\Bunkr Downloader"
-
-  ReadRegStr $0 HKCU "Environment" "Path"
+  ; Leave $INSTDIR first, otherwise Windows keeps the folder because it is the CWD.
+  SetOutPath "$TEMP"
+  RMDir "$INSTDIR"
+  ReadRegStr $0 HKCU "Environment" "PATH"
   ${WordReplace} "$0" ";$INSTDIR" "" "+" $1
   ${WordReplace} "$1" "$INSTDIR;" "" "+" $2
   ${WordReplace} "$2" "$INSTDIR" "" "+" $3
-  WriteRegExpandStr HKCU "Environment" "Path" "$3"
-
+  WriteRegExpandStr HKCU "Environment" "PATH" "$3"
+  SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=50
   DeleteRegKey HKCU "${REGKEY}"
-  DeleteRegKey HKCU "Software\BunkrDownloader"
 SectionEnd

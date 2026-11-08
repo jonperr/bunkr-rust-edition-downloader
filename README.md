@@ -29,7 +29,7 @@
 
 <br>
 
-<a href="https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-x64.exe">
+<a href="https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-en-x64.exe">
   <img src="https://img.shields.io/badge/⬇_Download_now-Windows_installer-2ea043?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" height="50">
 </a>
 
@@ -39,7 +39,7 @@
 
 <div align="center">
 
-<a href="https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-x64.exe">
+<a href="https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-en-x64.exe">
   <img src="https://img.shields.io/badge/⬇_Download_for_Windows-Installer_.exe-2ea043?style=for-the-badge&logo=windows&logoColor=white" alt="Download for Windows" height="46">
 </a>
 &nbsp;
@@ -57,7 +57,7 @@
 
 #### ✅ Recommended: Windows installer
 
-Download **[`bunkr-setup-2.0.0-windows-x64.exe`](https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-x64.exe)**,
+Download **[`bunkr-setup-2.0.0-windows-en-x64.exe`](https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-en-x64.exe)**,
 double-click it and follow the wizard. It installs the **CLI and GUI** ready to run, creates Desktop
 and Start Menu shortcuts, adds `bunkr` to your `PATH`, and includes an uninstaller.
 **No compiling, no Rust required.**
@@ -236,7 +236,7 @@ Each file has its own retry budget with exponential backoff. Transient errors
 
 <br>
 
-<a href="https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-x64.exe">
+<a href="https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-ptbr-x64.exe">
   <img src="https://img.shields.io/badge/⬇_Baixar_agora-Instalador_Windows-2ea043?style=for-the-badge&logo=windows&logoColor=white" alt="Baixar para Windows" height="50">
 </a>
 
@@ -246,7 +246,7 @@ Each file has its own retry budget with exponential backoff. Transient errors
 
 <div align="center">
 
-<a href="https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-x64.exe">
+<a href="https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-ptbr-x64.exe">
   <img src="https://img.shields.io/badge/⬇_Baixar_para_Windows-Instalador_.exe-2ea043?style=for-the-badge&logo=windows&logoColor=white" alt="Baixar para Windows" height="46">
 </a>
 &nbsp;
@@ -264,7 +264,7 @@ Each file has its own retry budget with exponential backoff. Transient errors
 
 #### ✅ Recomendado: instalador Windows
 
-Baixe **[`bunkr-setup-2.0.0-windows-x64.exe`](https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-x64.exe)**,
+Baixe **[`bunkr-setup-2.0.0-windows-ptbr-x64.exe`](https://github.com/jonperr/bunkr-rust-edition-downloader/releases/latest/download/bunkr-setup-2.0.0-windows-ptbr-x64.exe)**,
 dê um duplo clique e siga o assistente. Ele instala a **CLI e a GUI** prontas, cria atalhos na
 área de trabalho e no menu iniciar, adiciona `bunkr` ao `PATH` e inclui desinstalador.
 **Não precisa compilar nada nem ter Rust instalado.**

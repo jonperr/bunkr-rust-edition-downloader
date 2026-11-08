@@ -66,7 +66,7 @@ impl Manager {
                 UrlResult::Ok => ui2.set_status(Status::Ok),
                 UrlResult::Failed => ui2.set_status(Status::Warn),
                 UrlResult::Error(m) | UrlResult::DiskFull(m) => {
-                    log.push(format!("Erro: {m} ({url})"));
+                    log.push(format!("{}: {m} ({url})", if bunkr_core::i18n::Lang::detect() == bunkr_core::i18n::Lang::Pt { "Erro" } else { "Error" }));
                     ui2.set_note(m);
                     ui2.set_status(Status::Error);
                 }
