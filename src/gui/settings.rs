@@ -16,6 +16,8 @@ pub struct GuiSettings {
     pub ignore_text: String,
     pub include_text: String,
     pub dark_mode: bool,
+    /// "en" or "pt". Written by the installer; falls back to the OS locale.
+    pub lang: String,
 }
 
 fn default_destination() -> String {
@@ -38,6 +40,7 @@ impl Default for GuiSettings {
             ignore_text: String::new(),
             include_text: String::new(),
             dark_mode: true,
+            lang: String::new(),
         }
     }
 }
@@ -74,6 +77,7 @@ impl GuiSettings {
                 "ignore_text" => s.ignore_text = v.clone(),
                 "include_text" => s.include_text = v.clone(),
                 "dark_mode" => s.dark_mode = b(s.dark_mode),
+                "lang" => s.lang = v.trim().to_ascii_lowercase(),
                 _ => {}
             }
         }
@@ -83,7 +87,7 @@ impl GuiSettings {
     pub fn save(&self) {
         let esc = |t: &str| t.replace('\\', "\\\\");
         let out = format!(
-            "[General]\r\ndestination={}\r\ncreate_downloads_subfolder={}\r\ndisable_server_check={}\r\nmax_retries={}\r\nconnections={}\r\nworkers={}\r\nmax_concurrent_albums={}\r\nrate_limit_kbps={}\r\nignore_text={}\r\ninclude_text={}\r\ndark_mode={}\r\nclean_filenames={}\r\n",
+            "[General]\r\ndestination={}\r\ncreate_downloads_subfolder={}\r\ndisable_server_check={}\r\nmax_retries={}\r\nconnections={}\r\nworkers={}\r\nmax_concurrent_albums={}\r\nrate_limit_kbps={}\r\nignore_text={}\r\ninclude_text={}\r\ndark_mode={}\r\nclean_filenames={}\r\nlang={}\r\n",
             esc(&self.destination),
             self.create_downloads_subfolder,
             self.disable_server_check,
@@ -96,6 +100,7 @@ impl GuiSettings {
             esc(&self.include_text),
             self.dark_mode,
             self.clean_filenames,
+            self.lang,
         );
         let _ = std::fs::write(ini_path(), out);
     }

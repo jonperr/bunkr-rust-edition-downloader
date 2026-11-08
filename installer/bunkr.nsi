@@ -34,12 +34,15 @@ ShowInstDetails show
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 
-!ifndef PTFIRST
-  !insertmacro MUI_LANGUAGE "English"
-  !insertmacro MUI_LANGUAGE "PortugueseBR"
+!insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "PortugueseBR"
+!ifndef APP_LANG
+  !define APP_LANG "en"
+!endif
+!if "${APP_LANG}" == "pt"
+  !define LANG_ID ${LANG_PORTUGUESEBR}
 !else
-  !insertmacro MUI_LANGUAGE "PortugueseBR"
-  !insertmacro MUI_LANGUAGE "English"
+  !define LANG_ID ${LANG_ENGLISH}
 !endif
 
 LangString RUN_NOW        ${LANG_ENGLISH}      "Start Bunkr Downloader now"
@@ -83,6 +86,10 @@ FunctionEnd
 
 Function .onInit
   StrCpy $DESKTOP_ON "1"
+  ; Force the language chosen at build time; NSIS would otherwise pick one from
+  ; the OS locale, so the English installer would show Portuguese on a pt-BR
+  ; machine.
+  StrCpy $LANGUAGE ${LANG_ID}
 FunctionEnd
 
 Section "$(SEC_CLI)" SEC_CLI
@@ -124,6 +131,12 @@ Section "$(SEC_PATH)" SEC_PATH
 SectionEnd
 
 Section -Post
+  ; The GUI reads its language from this file, not from the OS locale.
+  StrCpy $2 "en"
+  ${If} "${TAG}" == "ptbr"
+    StrCpy $2 "pt"
+  ${EndIf}
+  WriteINIStr "$INSTDIR\bunkr_gui_settings.ini" "General" "lang" "$2"
   WriteUninstaller "$INSTDIR\uninstall.exe"
 SectionEnd
 
@@ -131,6 +144,7 @@ Section "Uninstall"
   Delete "$INSTDIR\bunkr.exe"
   Delete "$INSTDIR\bunkr-gui.exe"
   Delete "$INSTDIR\bunkr.toml.example"
+  Delete "$INSTDIR\bunkr_gui_settings.ini"
   Delete "$INSTDIR\uninstall.exe"
   Delete "$DESKTOP\Bunkr Downloader.lnk"
   Delete "$SMPROGRAMS\Bunkr Downloader\Bunkr Downloader.lnk"

@@ -108,8 +108,20 @@ impl App {
         }
         let expand = opts.expand;
         let log = opts.log;
+        // The installer writes "en"/"pt" into the settings file; fall back to
+        // the OS locale for a hand-edited or legacy file, and remember it so
+        // the next save does not drop it back to an empty string.
+        let l = match s.lang.as_str() {
+            "pt" => Lang::Pt,
+            "en" => Lang::En,
+            _ => {
+                let d = Lang::detect();
+                s.lang = if d == Lang::Pt { "pt".into() } else { "en".into() };
+                d
+            }
+        };
         Self {
-            l: Lang::detect(),
+            l,
             s,
             p,
             url_text: opts.urls.join("\n"),
